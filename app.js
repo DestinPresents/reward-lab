@@ -1,7 +1,6 @@
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
 import {getAuth,GoogleAuthProvider,signInWithPopup,signInWithRedirect,getRedirectResult,onAuthStateChanged,signOut} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
 import {getFirestore,doc,onSnapshot,collection,query,orderBy,limit,runTransaction,serverTimestamp,increment} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
-import {getFirestore,doc,onSnapshot,collection,query,orderBy,limit,runTransaction,serverTimestamp} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 import {firebaseConfig} from './firebase-config.js';
 import {adminEmail} from './app-settings.js';
 
@@ -36,16 +35,19 @@ async function setupAccount(u,epoch){setup='loading';notice='';render();
     if(mine.exists())return {status:'exists',data:mine.data()};
     const newCodeRef=codeRef(candidate);const candidateSnap=await t.get(newCodeRef);
     if(candidateSnap.exists())return {status:'retry'};
-    const invite=referring();let refUid=null,refUser=null,refUserSnap=null,refLinkRef=null,refLinkSnap=null;
-    if(/^\d{5}$/.test(invite)){
-     const inviteSnap=await t.get(codeRef(invite));
-     if(inviteSnap.exists()&&inviteSnap.data().uid!==u.uid){
+    
+const invite = referring();
+let refUid = null, refUser = null, refLinkRef = null;
+
+if (/^\d{5}$/.test(invite)) {
+  const inviteSnap = await t.get(codeRef(invite));
+
+  if (inviteSnap.exists() && inviteSnap.data().uid !== u.uid) {
     refUid = inviteSnap.data().uid;
-refUser = userRef(refUid);
-refLinkRef = referralRef(refUid, u.uid);refLinkRef=referralRef(refUid,u.uid);refLinkSnap=await t.get(refLinkRef);
-      if(!refUserSnap.exists()||refUserSnap.data().disabled===true||refLinkSnap.exists()||Number(refUserSnap.data().balance||0)>99999990){refUid=null;refUser=null;refUserSnap=null;refLinkRef=null;refLinkSnap=null;}
-     }
-    }
+    refUser = userRef(refUid);
+    refLinkRef = referralRef(refUid, u.uid);
+  }
+}
     const stamp=serverTimestamp();
     t.set(newCodeRef,{uid:u.uid,createdAt:stamp});
     t.set(mineRef,{uid:u.uid,code:candidate,name:u.displayName||'RewardLab Member',email:u.email||'',balance:50,totalDeposited:0,referredBy:refUid?invite:null,createdAt:stamp,updatedAt:stamp,disabled:false,note:'',lastOperationId:'signup'});
@@ -102,7 +104,90 @@ function overview(){return `<div class="hero"><div class="hero-copy"><div class=
 function history(){return `<div class="surface transaction"><div class="surface-heading"><div><h2>Activity history</h2><p>Latest 100 records</p></div><span class="mini-chip">${transactions.length} records</span></div><div class="table-scroll"><table><thead><tr><th>Activity</th><th>Amount</th><th>Status</th><th>When</th></tr></thead><tbody>${transactions.length?transactions.map(t=>`<tr><td><span class="transaction-title">${escapeHTML(t.type||'Activity')}</span><small class="cell-sub">${escapeHTML(t.id.slice(0,10))}</small></td><td class="amount">${fmt(t.amount)}</td><td><span class="status ${['pending','success','cancelled'].includes(t.status)?t.status:''}">${escapeHTML(t.status||'—')}</span></td><td class="muted">${time(t.createdAt)}</td></tr>`).join(''):`<tr><td colspan="4" class="empty-cell">No activity yet.</td></tr>`}</tbody></table></div></div>`}
 function wallet(){return `<div class="wallet-head"><div class="wallet-card"><div class="eyebrow">AVAILABLE CREDITS</div><div class="wallet-amount">${fmt(profile.balance)}</div><p>Training credits for your personal testing environment.</p><div class="wallet-accent" aria-hidden="true">✦</div></div><div class="wallet-summary"><h3>Wallet overview</h3><div class="wallet-line"><span>Total deposits</span><b>${fmt(profile.totalDeposited)}</b></div><div class="wallet-line"><span>Withdrawal threshold</span><b>₹200</b></div><div class="wallet-line"><span>Deposit requirement</span><b>₹100</b></div><div class="notice-note">No real payment or payout is processed.</div></div></div><div class="section-head"><div><h2>Manage credits</h2><p>Choose an amount or make a withdrawal request.</p></div></div><div class="wallet-actions"><div class="surface"><h3>Add credits</h3><p class="muted">Instantly add testing credits to your wallet.</p><div class="amount-grid">${[100,200,300,500,1000].map(n=>btn('+'+fmt(n),'deposit:'+n,'amount-btn')).join('')}</div></div><div class="surface"><h3>Withdrawal request</h3><p class="muted">Minimum ₹200, with at least ₹100 in prior deposits.</p><label for="withdrawAmount" class="field-label">Credit amount</label><input class="field" id="withdrawAmount" type="number" inputmode="numeric" min="200" max="100000" step="1" placeholder="Enter amount" value="${escapeHTML(withdrawDraft)}">${btn('Submit request ↗','withdraw','primary wide')}</div></div>${history()}`}
 function gamesPage(){const deposited=Number(profile.totalDeposited||0);return `<div class="section-intro"><span class="eyebrow">GAME ARENA</span><h2>Five worlds. One place.</h2><p>Game experiences are being prepared. Entry requirements are checked using your deposit total.</p></div><div class="games-grid">${games.map(g=>{const unlocked=deposited>=g.need;return `<article class="game-card ${g.color}"><div class="game-top"><span class="game-icon">${g.symbol}</span><span class="status-badge ${unlocked?'is-ready':''}">${unlocked?'ELIGIBLE':'LOCKED'}</span></div><h3>${g.title}</h3><p>${g.desc}</p><div class="game-divider"></div><div class="game-footer"><small>Requires ${fmt(g.need)} deposits</small>${btn(unlocked?'Coming soon':'View requirement','game:'+g.key,unlocked?'soft':'primary')}</div></article>`}).join('')}</div><div class="notice-note game-notice">All titles are placeholders: no gameplay or wagering is enabled.</div>`}
-function referPage(){const link=new URL(location.pathname.replace(/[^/]*$/,'index.html'),location.href);link.searchParams.set('ref',profile.code);return `<div class="ref-hero"><div><span class="eyebrow">GROW YOUR CIRCLE</span><h2>Good things are<br>better together.</h2><p>Share your invite link. Receive 10 credits when a new Google account registers using your code.</p><div class="actions">${btn('Copy invite link ↗','copyref','primary')}${btn('Copy code','copycode','soft')}</div></div><div class="ref-large">${escapeHTML(profile.code)}<span>YOUR INVITE CODE</span></div></div><div class="stats-grid">${stat('Invite code','#'+escapeHTML(profile.code),'Unique to your account','violet-text')}${stat('Successful referrals',referrals.length,'Registered friends')}${stat('Referral credits',fmt(referrals.length*10),'10 credits per friend','mint-text')}</div><div class="surface invite-list"><div class="surface-heading"><div><h2>Referred members</h2><p>Only completed registrations are counted.</p></div></div>${referrals.length?referrals.map(r=>`<div class="invite-row"><span class="invite-avatar">◎</span><div><b>Member #${escapeHTML(r.code)}</b><small>${time(r.createdAt)}</small></div><span class="mint-text">+₹10</span></div>`).join(''):'<div class="empty-state">No referrals yet. Share your link to invite your first member.</div>'}</div><div class="readonly-link">${escapeHTML(link.href)}</div>`}
+
+function referPage() {
+  const link = new URL(
+    location.pathname.replace(/[^/]*$/, 'index.html'),
+    location.href
+  );
+
+  link.searchParams.set('ref', profile.code);
+
+  const referralRows = referrals.length
+    ? referrals.map(r => `
+        <div class="invite-row">
+          <span class="invite-avatar">◎</span>
+          <div>
+            <b>Member code: ${escapeHTML(String(r.code || ''))}</b>
+          </div>
+        </div>
+      `).join('')
+    : `
+        <div class="empty-state">
+          No referrals yet. Share your link to invite your first member.
+        </div>
+      `;
+
+  return `
+    <div class="ref-hero">
+      <div>
+        <span class="eyebrow">GROW YOUR CIRCLE</span>
+        <h2>Good things are<br>better together.</h2>
+        <p>
+          Share your invite link. Receive 10 credits
+          when a new Google account registers using your code.
+        </p>
+
+        <div class="actions">
+          ${btn('Copy invite link ↗', 'copyref', 'primary')}
+          ${btn('Copy code', 'copycode', 'soft')}
+        </div>
+      </div>
+
+      <div class="ref-large">
+        ${escapeHTML(profile.code)}
+        <span>YOUR INVITE CODE</span>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      ${stat(
+        'Invite code',
+        '#' + escapeHTML(profile.code),
+        'Unique to your account',
+        'violet-text'
+      )}
+
+      ${stat(
+        'Successful referrals',
+        referrals.length,
+        'Registered friends'
+      )}
+
+      ${stat(
+        'Referral credits',
+        fmt(referrals.length * 10),
+        '10 credits per friend',
+        'mint-text'
+      )}
+    </div>
+
+    <div class="surface invite-list">
+      <div class="surface-heading">
+        <div>
+          <h2>Referred members</h2>
+          <p>Only completed registrations are counted.</p>
+        </div>
+      </div>
+
+      ${referralRows}
+    </div>
+
+    <div class="readonly-link">
+      ${escapeHTML(link.href)}
+    </div>
+  `;
+}
 function profilePage(){const initials=String(user?.displayName||'R').slice(0,1).toUpperCase();return `<div class="profile-banner"><div class="profile-avatar">${escapeHTML(initials)}</div><div><h2>${escapeHTML(user.displayName||'RewardLab Member')}</h2><p>${escapeHTML(user.email||'Google account')}</p><span class="mini-chip">Member #${escapeHTML(profile.code)}</span></div></div><div class="profile-grid"><div class="surface"><h3>Account details</h3><div class="profile-field"><span>Login provider</span><b>Google</b></div><div class="profile-field"><span>Member code</span><b>#${escapeHTML(profile.code)}</b></div><div class="profile-field"><span>Joined</span><b>${time(profile.createdAt)}</b></div><div class="profile-field"><span>Credits</span><b>${fmt(profile.balance)}</b></div></div><div class="surface"><h3>Your membership</h3><div class="profile-field"><span>Deposits</span><b>${fmt(profile.totalDeposited)}</b></div><div class="profile-field"><span>Successful referrals</span><b>${referrals.length}</b></div><div class="profile-field"><span>Game status</span><b>${Number(profile.totalDeposited||0)>=300?'Basic eligible':'Locked'}</b></div><div class="notice-note">This service uses testing credits only.</div>${adminAllowed?'<a class="inline-link" href="admin.html">Open Admin Console ↗</a>':''}${btn('Sign out','logout','soft')}</div></div>`}
 function mainPage(){const contents={home:overview,wallet,games:gamesPage,refer:referPage,profile:profilePage};return `<div class="layout">${sidebar()}<div class="content">${top()}${notice?`<div class="alert" role="alert">${escapeHTML(notice)} <button data-action="dismiss" aria-label="Dismiss alert">×</button></div>`:''}${contents[view]()}<footer class="footer">© RewardLab · Private testing environment · Credits have no cash value.</footer></div>${mobileNav()}</div>`}
 function loginPage(){return `<div class="login-shell"><div class="login-glow"></div><div class="login-panel"><div class="brand"><span class="logo-mark">✦</span> Reward<span>Lab</span></div><div class="eyebrow">WELCOME TO REWARDLAB</div><h1>Your rewards,<br><em>your space.</em></h1><p>Discover the next generation of games, invitations and rewards in one clean experience.</p><div class="login-visual"><div class="login-coin">✦</div><span>START WITH 50 CREDITS</span></div>${btn('G  Continue with Google','login','primary wide')}${notice?`<div class="alert" role="alert">${escapeHTML(notice)}</div>`:''}<small class="legal">Private testing · Credits have no monetary value</small></div></div>`}
