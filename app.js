@@ -50,10 +50,28 @@ refLinkRef = referralRef(refUid, u.uid);refLinkRef=referralRef(refUid,u.uid);ref
     t.set(newCodeRef,{uid:u.uid,createdAt:stamp});
     t.set(mineRef,{uid:u.uid,code:candidate,name:u.displayName||'RewardLab Member',email:u.email||'',balance:50,totalDeposited:0,referredBy:refUid?invite:null,createdAt:stamp,updatedAt:stamp,disabled:false,note:'',lastOperationId:'signup'});
     t.set(txRef(u.uid,'signup'),{type:'signup bonus',amount:50,status:'success',createdAt:stamp,source:'testing'});
-    if(refUid&&refUserSnap&&refUserRefSafe(refUserSnap.data())){
-     t.update(refUser,{balance:Number(refUserSnap.data().balance||0)+10,updatedAt:stamp,lastOperationId:`ref-${u.uid}`});
-     t.set(refLinkRef,{uid:u.uid,code:candidate,createdAt:stamp});
-     t.set(txRef(refUid,`ref-${u.uid}`),{type:'referral',amount:10,status:'success',referredUid:u.uid,code:candidate,createdAt:stamp,source:'testing'});
+    if (refUid && refUser && refLinkRef) {
+  t.update(refUser, {
+    balance: increment(10),
+    updatedAt: stamp,
+    lastOperationId: `ref-${u.uid}`
+  });
+
+  t.set(refLinkRef, {
+    uid: u.uid,
+    code: candidate,
+    createdAt: stamp
+  });
+
+  t.set(txRef(refUid, `ref-${u.uid}`), {
+    type: 'referral',
+    amount: 10,
+    status: 'success',
+    referredUid: u.uid,
+    code: candidate,
+    createdAt: stamp,
+    source: 'testing'
+  });
     }
     return {status:'created'};
    });
