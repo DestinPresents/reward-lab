@@ -1,5 +1,6 @@
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js';
 import {getAuth,GoogleAuthProvider,signInWithPopup,signInWithRedirect,getRedirectResult,onAuthStateChanged,signOut} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js';
+import {getFirestore,doc,onSnapshot,collection,query,orderBy,limit,runTransaction,serverTimestamp,increment} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 import {getFirestore,doc,onSnapshot,collection,query,orderBy,limit,runTransaction,serverTimestamp} from 'https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js';
 import {firebaseConfig} from './firebase-config.js';
 import {adminEmail} from './app-settings.js';
