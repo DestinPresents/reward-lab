@@ -7,7 +7,7 @@ assert(!cfg.includes('"functions"'),'firebase.json must not define Functions dep
 assert(app.includes('runTransaction')&&app.includes('signup bonus'),'signup and credit flows should use Firestore transactions');
 assert(app.includes('balance:50')&&app.includes('amount:10'),'signup/referral amounts should be present');
 assert(admin.includes('withdrawalDecision')&&admin.includes('editUser'),'admin decisions and audit trail should be present');
-assert(rules.includes('function isAdmin()')&&rules.includes('REPLACE_WITH_YOUR_GOOGLE_EMAIL'),'Firestore admin allowlist placeholder should exist');
+assert(rules.includes('function isAdmin()')&&rules.includes('adityasinghworks1612@gmail.com'),'Firestore admin allowlist placeholder should exist');
 assert(!fs.existsSync(path.join(root,'functions')),'Spark package should not include a Cloud Functions deployment folder');
-assert(fs.readFileSync(path.join(root,'app-settings.js'),'utf8').includes('REPLACE_WITH_YOUR_GOOGLE_EMAIL'),'app settings must explain admin email setup');
+assert(fs.readFileSync(path.join(root,'app-settings.js'),'utf8').includes('adityasinghworks1612@gmail.com'),'app settings must explain admin email setup');
 console.log('PASS: Spark-only architecture, no Functions dependency, signup/referral flows, admin actions, and rules placeholder.');
