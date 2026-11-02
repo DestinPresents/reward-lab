@@ -40,7 +40,9 @@ async function setupAccount(u,epoch){setup='loading';notice='';render();
     if(/^\d{5}$/.test(invite)){
      const inviteSnap=await t.get(codeRef(invite));
      if(inviteSnap.exists()&&inviteSnap.data().uid!==u.uid){
-      refUid=inviteSnap.data().uid;refUser=userRef(refUid);refUserSnap=await t.get(refUser);refLinkRef=referralRef(refUid,u.uid);refLinkSnap=await t.get(refLinkRef);
+    refUid = inviteSnap.data().uid;
+refUser = userRef(refUid);
+refLinkRef = referralRef(refUid, u.uid);refLinkRef=referralRef(refUid,u.uid);refLinkSnap=await t.get(refLinkRef);
       if(!refUserSnap.exists()||refUserSnap.data().disabled===true||refLinkSnap.exists()||Number(refUserSnap.data().balance||0)>99999990){refUid=null;refUser=null;refUserSnap=null;refLinkRef=null;refLinkSnap=null;}
      }
     }
